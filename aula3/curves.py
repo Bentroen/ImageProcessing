@@ -4,15 +4,16 @@ import cv2
 import matplotlib.pyplot as plt
 
 
-def plot_curves(img, func: Callable, args: tuple[Any], title: str = ""):
+def plot_curves(func: Callable, *args: tuple[Any], title: str = ""):
     x = np.linspace(0, 255, 256)
-    y = func(x, *args)
+    y = [func(value, *args) for value in x]
 
+    plt.title(title)
     plt.plot(x, y)
     plt.show()
 
 
-def _process_image(img, func: Callable, args: tuple[Any]):
+def apply_curve(img, func: Callable, args: tuple[Any]):
     width, height = img.shape
     new_img = np.zeros(img.shape, dtype="uint8")
 
@@ -23,123 +24,61 @@ def _process_image(img, func: Callable, args: tuple[Any]):
     return new_img
 
 
-def negative(img):
-    width, height = img.shape
-    new_img = np.zeros(img.shape, dtype="uint8")
-
-    for i in range(width):
-        for j in range(height):
-            new_img[i][j] = 255 - img[i][j]
-
-    # Line plot of tone curve
-    plt.plot(range(256), range(256)[::-1])
-    plt.show()
-
+def apply_curve_and_plot(img, func: Callable, *args: tuple[Any], title: str = ""):
+    new_img = apply_curve(img, func, args)
+    cv2.imshow(title, new_img)
+    plot_curves(func, *args, title=title)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
     return new_img
 
 
-def s_curve(img):
-    width, height = img.shape
-    new_img = np.zeros(img.shape, dtype="uint8")
-
-    for i in range(width):
-        for j in range(height):
-            value = img[i][j]
-            new_value = 255 / (1 + np.exp(-value))
-            new_img[i][j] = new_value
-
-    return new_img
+def original(x):
+    return x
 
 
-def log_curve(img):
-    width, height = img.shape
-    new_img = np.zeros(img.shape, dtype="uint8")
-
-    for i in range(width):
-        for j in range(height):
-            value = img[i][j]
-            new_value = np.log(1 + value)
-            new_img[i][j] = new_value
-
-    return new_img
+def negative(x):
+    return 255 - x
 
 
-def gamma_curve(img, gamma: float):
-    width, height = img.shape
-    new_img = np.zeros(img.shape, dtype="uint8")
-
-    for i in range(width):
-        for j in range(height):
-            value = img[i][j]
-            new_value = 255 * np.power(value / 255, gamma)
-            new_img[i][j] = new_value
-
-    return new_img
+def s_curve(x, a: float = 1):
+    x -= 128
+    x /= 128
+    return 255 / (1 + np.exp(-a * x))
 
 
-def contrast(img, alpha: float):
-    width, height = img.shape
-    new_img = np.zeros(img.shape, dtype="uint8")
-
-    for i in range(width):
-        for j in range(height):
-            value = img[i][j]
-            new_value = alpha * value
-            new_img[i][j] = new_value
-
-    return new_img
+def log_curve(x, a: float = 1):
+    return np.log(1 + a * x)
 
 
-def crush_blacks(img, cutoff_point: int):
-    width, height = img.shape
-    new_img = np.zeros(img.shape, dtype="uint8")
-
-    for i in range(width):
-        for j in range(height):
-            value = img[i][j]
-            if value < cutoff_point:
-                new_img[i][j] = 0
-            else:
-                new_img[i][j] = value * 255 / cutoff_point
-
-    return new_img
+def gamma_curve(x, gamma: float = 1):
+    return 255 * np.power(x / 255, gamma)
 
 
-def crush_whites(img, cutoff_point: int):
-    width, height = img.shape
-    new_img = np.zeros(img.shape, dtype="uint8")
+def contrast(x, alpha: float = 1):
+    return max(0, min(alpha * x, 255))
 
-    for i in range(width):
-        for j in range(height):
-            value = img[i][j]
-            if value > cutoff_point:
-                new_img[i][j] = 255
-            else:
-                new_img[i][j] = value * 255 / cutoff_point
 
-    return new_img
+def crush_blacks(x, cutoff_point: int):
+    return 0 if x < cutoff_point else (x - cutoff_point) * (255 / cutoff_point)
+
+
+def crush_whites(x, cutoff_point: int):
+    return 255 if x > cutoff_point else x * (255 / cutoff_point)
 
 
 def main():
     img = cv2.imread("road.jpeg", cv2.IMREAD_GRAYSCALE)
     img = cv2.resize(img, (0, 0), fx=0.5, fy=0.5)
 
-    img_negative = negative(img)
-    img_s_curve = s_curve(img)
-    img_log_curve = log_curve(img)
-    img_gamma_curve = gamma_curve(img, 0.5)
-    img_contrast = contrast(img, 1.5)
-    img_crush_blacks = crush_blacks(img, 128)
-    img_crush_whites = crush_whites(img, 128)
-
-    cv2.imshow("Original", img)
-    cv2.imshow("Negative", img_negative)
-    # cv2.imshow("S Curve", img_s_curve)
-    # cv2.imshow("Log Curve", img_log_curve)
-    cv2.imshow("Gamma Curve", img_gamma_curve)
-    cv2.imshow("Contrast", img_contrast)
-    cv2.imshow("Crush Blacks", img_crush_blacks)
-    cv2.imshow("Crush Whites", img_crush_whites)
+    apply_curve_and_plot(img, original, title="Original")
+    apply_curve_and_plot(img, negative, title="Negative")
+    apply_curve_and_plot(img, s_curve, 5.0, title="S Curve")
+    apply_curve_and_plot(img, log_curve, title="Log Curve")
+    apply_curve_and_plot(img, gamma_curve, 4, title="Gamma Curve")
+    apply_curve_and_plot(img, contrast, 1.5, title="Contrast")
+    apply_curve_and_plot(img, crush_blacks, 128, title="Crush Blacks")
+    apply_curve_and_plot(img, crush_whites, 128, title="Crush Whites")
 
     cv2.waitKey(0)
     cv2.destroyAllWindows()
