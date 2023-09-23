@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 
 def histogram_equalization(img):
     # Histograma da imagem
-    hist, bins = np.histogram(img.flatten(), 256, [0, 256])
+    hist = cv2.calcHist([img], [0], None, [256], [0, 256])
 
     # CDF da imagem
     cdf = hist.cumsum()
@@ -13,16 +13,14 @@ def histogram_equalization(img):
     # Normalização do CDF
     cdf_normalized = cdf * hist.max() / cdf.max()
 
-    print("CDF Original: ", cdf)
-    print("CDF Normalizado: ", cdf_normalized)
-
     # Equalização
     cdf_m = np.ma.masked_equal(cdf, 0)
     cdf_m = (cdf_m - cdf_m.min()) * 255 / (cdf_m.max() - cdf_m.min())
-
-    # Aplicação da equalização
     cdf = np.ma.filled(cdf_m, 0).astype("uint8")
     img2 = cdf[img]
+
+    # OU:
+    # img2 = cv2.equalizeHist(img)
 
     # Histograma da imagem equalizada
     hist2, bins2 = np.histogram(img2.flatten(), 256, [0, 256])
@@ -59,9 +57,12 @@ def histogram_equalization(img):
 
 
 def main():
-    img = cv2.imread("leaf.jpg", 0)
+    img = cv2.imread("leaf.jpg")
 
-    histogram_equalization(img)
+    # Convert to grayscale
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+    histogram_equalization(gray)
 
 
 if __name__ == "__main__":
