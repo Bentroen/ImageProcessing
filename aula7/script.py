@@ -54,6 +54,12 @@ def main():
     cv2.imshow("Convolution", conv)
     cv2.waitKey(0)
 
+    # Repeat for n steps
+    new_img = gray
+    for i in range(5):
+        new_img = convolution(new_img, kernel)
+        cv2.imshow(f"Step {i+1}", new_img)
+
 
 if __name__ == "__main__":
     main()
