@@ -6,6 +6,17 @@ import matplotlib.pyplot as plt
 KERNEL_SIZE = 5
 
 
+def full_kernel(size: int = 3):
+    return np.ones((size, size), dtype=np.float32)
+
+
+def cross_kernel(size: int = 3):
+    kernel = np.ones((size, size), dtype=np.float32)
+    kernel[size // 2] = np.zeros(size, dtype=np.float32)
+    kernel[:, size // 2] = np.zeros(size, dtype=np.float32)
+    return kernel
+
+
 def add_padding(img: np.ndarray, padding: int = 1):
     width, height = img.shape
     padded_img = np.zeros((width + padding * 2, height + padding * 2), dtype=np.uint8)
@@ -45,7 +56,8 @@ def main():
     img = cv2.imread("circles.png")
     img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
-    kernel = np.ones((KERNEL_SIZE, KERNEL_SIZE))
+    kernel = cross_kernel(KERNEL_SIZE)
+    kernel = full_kernel(KERNEL_SIZE)
 
     fig, axs = plt.subplots(3, 3)
     # Remove axis
